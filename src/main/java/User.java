@@ -23,7 +23,7 @@ public class User {
             );
         }
 
-        // Check the minimum password length
+        // Check the minimum password length                        
         if (password.length() < 8) {
             throw new Exception(
                     "Your password is too short, add more characters"
