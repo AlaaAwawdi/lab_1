@@ -77,6 +77,50 @@ public class LoginApp extends Application {
     }
 
     public static void main(String[] args) {
-        launch(args);
+        Scanner input = new Scanner(System.in);
+
+        if (args.length > 2) {
+            System.out.println("Expected exactly two arguments: n and t. Please re-enter them.");
+            args = new String[0];
+        }
+
+        String n = readPositiveInt(args, 0, "n", input);
+        if (n == null) {
+            return;
+        }
+
+        String t = readPositiveInt(args, 1, "t", input);
+        if (t == null) {
+            return;
+        }
+
+        launch(n, t);
+    }
+
+    private static String readPositiveInt(String[] args, int index,
+                                          String name, Scanner input) {
+        String value = index < args.length ? args[index] : null;
+
+        while (true) {
+            if (value == null) {
+                System.out.println("Missing argument: " + name);
+            } else {
+                try {
+                    if (Integer.parseInt(value) >= 1) {
+                        return value;
+                    }
+                } catch (NumberFormatException e) {
+                    // The value could not be read as an integer.
+                }
+                System.out.println(name + " must be a positive integer.");
+            }
+
+            System.out.print("Enter " + name + ": ");
+            System.out.flush();
+            if (!input.hasNextLine()) {
+                return null;
+            }
+            value = input.nextLine().trim();
+        }
     }
 }
