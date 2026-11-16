@@ -9,11 +9,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class LoginApp extends Application {
 
     private final ArrayList<User> users = new ArrayList<>();
-
+    private final BlockingQueue<FailedAttempt> attempts = new LinkedBlockingQueue<>();
+    private AttemptTracker tracker;
     // Read the input file and store only valid users.
     private void loadUsers() throws FileNotFoundException {
         try (Scanner reader = new Scanner(new File("users.txt"))) {
@@ -44,6 +47,14 @@ public class LoginApp extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
+        int n = Integer.parseInt(getParameters().getRaw().get(0));
+        int t = Integer.parseInt(getParameters().getRaw().get(1));
+        tracker = new AttemptTracker(n, t);
+
+        for (int i = 0; i < 2; i++) {
+            FailureWorker worker = new FailureWorker(attempts, tracker);
+            worker.start();
+        }
         String loadingError = null;
 
         // Load the users before opening the login screen.
@@ -61,6 +72,7 @@ public class LoginApp extends Application {
 
         LoginController controller = loader.getController();
         controller.setUsers(users);
+        controller.setAttemptTracking(tracker, attempts);
         controller.setStage(stage);
 
         if (loadingError != null) {

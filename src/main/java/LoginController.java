@@ -10,6 +10,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.BlockingQueue;
 
 public class LoginController {
 
@@ -27,6 +28,14 @@ public class LoginController {
 
     private ArrayList<User> users;
     private Stage stage;
+    private AttemptTracker tracker;
+    private BlockingQueue<FailedAttempt> attempts;
+
+    public void setAttemptTracking(AttemptTracker tracker,
+                                   BlockingQueue<FailedAttempt> attempts) {
+        this.tracker = tracker;
+        this.attempts = attempts;
+    }
 
     // Receive the valid users from LoginApp.
     public void setUsers(ArrayList<User> users) {
@@ -46,30 +55,43 @@ public class LoginController {
 
     @FXML
     private void handleLogin() {
-        String username = usernameField.getText();
+        String email = usernameField.getText();
         String password = passwordField.getText();
 
-        errorLabel.setText("");
-
-        if (username.isEmpty() || password.isEmpty()) {
+        if (email.isEmpty() || password.isEmpty()) {
             errorLabel.setText("Please enter a username and a password");
             return;
         }
 
-        // User.toString() returns the username, a space, and the password.
-        String enteredDetails = username + " " + password;
+        errorLabel.setText("");
+        setLoginDisabled(true);
 
-        for (User user : users) {
-            if (user.toString().equals(enteredDetails)) {
-                openWelcomeScreen(user.getUsername());
-                return;
-            }
-        }
+        LoginTask task = new LoginTask(email, password, users, tracker, attempts,
+                result -> {
+                    setLoginDisabled(false);
 
-        // Show the error in the current screen, without a pop-up.
-        errorLabel.setText("Incorrect username or password");
+                    switch (result.status()) {
+                        case SUCCESS ->
+                                openWelcomeScreen(email);
+                        case INVALID_CREDENTIALS ->
+                                errorLabel.setText("Incorrect username or password");
+                        case WRONG_PASSWORD ->
+                                errorLabel.setText("Incorrect username or password. Attempts left: "
+                                        + result.value());
+                        case BLOCKED -> startCountdown(email);
+                    }
+                });
+
+        Thread loginThread = new Thread(task);
+        loginThread.setDaemon(true);
+        loginThread.start();
     }
 
+    private void setLoginDisabled(boolean disabled) {
+        usernameField.setDisable(disabled);
+        passwordField.setDisable(disabled);
+        loginButton.setDisable(disabled);
+    }
     // Load the welcome FXML after a successful login.
     private void openWelcomeScreen(String username) {
         try {
@@ -90,5 +112,21 @@ public class LoginController {
             errorLabel.setText("Could not open the welcome screen");
             e.printStackTrace();
         }
+    }
+    private void startCountdown(String email) {
+        setLoginDisabled(true);
+
+        CountdownTask countdown = new CountdownTask(email, tracker, seconds -> {
+            if (seconds == 0) {
+                errorLabel.setText("");
+                setLoginDisabled(false);
+            } else {
+                errorLabel.setText("Account blocked. Seconds remaining: " + seconds);
+            }
+        });
+
+        Thread countdownThread = new Thread(countdown);
+        countdownThread.setDaemon(true);
+        countdownThread.start();
     }
 }
