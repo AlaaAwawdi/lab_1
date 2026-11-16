@@ -38,9 +38,13 @@
             defaultButton="true"
             onAction="#handleLogin"
             prefWidth="120"/>
+    <Button fx:id="testButton"
+            text="Run concurrency test"
+            onAction="#handleConcurrencyTest"/>
 
     <Label fx:id="errorLabel"
            maxWidth="330"
            wrapText="true"
            style="-fx-text-fill: #b00020;"/>
+
 </VBox>

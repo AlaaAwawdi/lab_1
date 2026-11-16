@@ -25,7 +25,8 @@ public class LoginController {
 
     @FXML
     private Button loginButton;
-
+    @FXML
+    private Button testButton;
     private ArrayList<User> users;
     private Stage stage;
     private AttemptTracker tracker;
@@ -91,6 +92,7 @@ public class LoginController {
         usernameField.setDisable(disabled);
         passwordField.setDisable(disabled);
         loginButton.setDisable(disabled);
+        testButton.setDisable(disabled);
     }
     // Load the welcome FXML after a successful login.
     private void openWelcomeScreen(String username) {
@@ -128,5 +130,31 @@ public class LoginController {
         Thread countdownThread = new Thread(countdown);
         countdownThread.setDaemon(true);
         countdownThread.start();
+    }
+    @FXML
+    private void handleConcurrencyTest() {
+        testButton.setDisable(true);
+        setLoginDisabled(true);
+        errorLabel.setText("Running concurrency test...");
+
+        Thread testThread = new Thread(() -> {
+            String result;
+            try {
+                result = ConcurrencyTest.runTest();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                result = "Test interrupted.";
+            }
+
+            String message = result;
+            javafx.application.Platform.runLater(() -> {
+                errorLabel.setText(message);
+                setLoginDisabled(false);
+                testButton.setDisable(false);
+            });
+        });
+
+        testThread.setDaemon(true);
+        testThread.start();
     }
 }

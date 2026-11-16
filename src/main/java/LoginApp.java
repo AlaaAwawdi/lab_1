@@ -45,6 +45,17 @@ public class LoginApp extends Application {
         }
     }
 
+    private String loadingError;
+
+    @Override
+    public void init() {
+        try {
+            loadUsers();
+        } catch (FileNotFoundException e) {
+            loadingError = "Could not open users.txt";
+        }
+    }
+
     @Override
     public void start(Stage stage) throws Exception {
         int n = Integer.parseInt(getParameters().getRaw().get(0));
@@ -54,14 +65,6 @@ public class LoginApp extends Application {
         for (int i = 0; i < 2; i++) {
             FailureWorker worker = new FailureWorker(attempts, tracker);
             worker.start();
-        }
-        String loadingError = null;
-
-        // Load the users before opening the login screen.
-        try {
-            loadUsers();
-        } catch (FileNotFoundException e) {
-            loadingError = "Could not open users.txt";
         }
 
         FXMLLoader loader = new FXMLLoader(
